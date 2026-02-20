@@ -1,7 +1,7 @@
 # 📈 Dự đoán Giá Cổ phiếu Việt Nam
 
 > **Môn học:** Lập trình Trí tuệ Nhân tạo  
-> Dự đoán giá cổ phiếu VN sử dụng 5 mô hình ML/DL + Explainable AI (SHAP) + Sentiment Analysis  
+> Dự đoán giá cổ phiếu VN sử dụng 5 mô hình ML/DL + Explainable AI (SHAP) + Sentiment Analysis (tích hợp vào model)  
 > Giao diện web tương tác bằng Streamlit
 
 ---
@@ -13,11 +13,11 @@ Hệ thống dự đoán giá cổ phiếu Việt Nam cho **5 mã**: VNM, VCB, F
 ### Các tính năng chính
 
 - **5 mô hình dự đoán** — LSTM, GRU, XGBoost, Prophet, ARIMA
-- **Đánh giá model** — Train 80% / Test 20%, so sánh Actual vs Predicted
+- **Đánh giá model** — Train/Validation/Test split đúng chuẩn, so sánh Actual vs Predicted
 - **Dự đoán tương lai** — Dự đoán giá 1-30 ngày tiếp theo (chưa xảy ra)
 - **So sánh models** — Chạy đồng thời 5 models, xếp hạng theo RMSE/MAE/MAPE
-- **Explainable AI (SHAP)** — Giải thích tại sao XGBoost dự đoán giá như vậy
-- **Sentiment Analysis** — Phân tích cảm xúc tin tức tài chính từ CafeF/VnExpress
+- **Sentiment Analysis tích hợp** — Tính sentiment từ dữ liệu giá (market-based) + tin tức → đưa vào model làm feature
+- **Explainable AI (SHAP)** — Giải thích tại sao XGBoost dự đoán giá như vậy (bao gồm sentiment impact)
 - **Giao diện Streamlit** — 6 tabs, dark theme, biểu đồ tương tác Plotly
 
 ---
@@ -29,16 +29,19 @@ Yahoo Finance API ──→ Data (CSV) ──→ Preprocessing ──→ Models 
                                         │                           │
                                    Technical               ┌───────┴────────┐
                                    Indicators               │                │
-                                   (16 features)        Đánh giá          Dự đoán
-                                                      (80/20 split)     (Tương lai)
-                                                           │                │
-                                                     RMSE/MAE/MAPE    Giá N ngày tới
-                                                           │
-                                                      SHAP (XGBoost)
-                                                           │
-                                                   Giải thích prediction
+                                   (11 chỉ báo)        Đánh giá          Dự đoán
+                                        │             (Train/Val/Test)   (Tương lai)
+                                        ▼                    │                │
+                                   Sentiment            RMSE/MAE/MAPE    Giá N ngày tới
+                                   Features                  │
+                                   (3 tín hiệu)         SHAP (XGBoost)
+                                        │                    │
+                                        ▼             Giải thích prediction
+                               19 Features/ngày        (bao gồm sentiment)
 
-CafeF / VnExpress ──→ Crawl Headlines ──→ Sentiment Score ──→ Hiển thị (chưa tích hợp vào model)
+CafeF / VnExpress ──→ Crawl Headlines ──→ News Sentiment ──→ Blend với Market Sentiment
+                                                                    │
+                                                              Tích hợp vào model
 ```
 
 ---
@@ -47,9 +50,9 @@ CafeF / VnExpress ──→ Crawl Headlines ──→ Sentiment Score ──→ 
 
 | Model | Loại | Input | Cách hoạt động |
 |-------|------|-------|----------------|
-| **LSTM** | Deep Learning | Chuỗi 60 ngày × 16 features (3D) | Long Short-Term Memory — ghi nhớ pattern dài hạn qua cổng quên/nhớ |
-| **GRU** | Deep Learning | Chuỗi 60 ngày × 16 features (3D) | Gated Recurrent Unit — đơn giản hơn LSTM, ít tham số hơn |
-| **XGBoost** | Machine Learning | 16 features (bảng 2D) | Gradient Boosting — ensemble nhiều decision trees, hỗ trợ SHAP |
+| **LSTM** | Deep Learning | Chuỗi 60 ngày × 19 features (3D) | Long Short-Term Memory — ghi nhớ pattern dài hạn qua cổng quên/nhớ |
+| **GRU** | Deep Learning | Chuỗi 60 ngày × 19 features (3D) | Gated Recurrent Unit — đơn giản hơn LSTM, ít tham số hơn |
+| **XGBoost** | Machine Learning | 19 features (bảng 2D) | Gradient Boosting — ensemble nhiều decision trees, hỗ trợ SHAP |
 | **Prophet** | Statistical | 2 cột: ngày + giá Close | Phân tách trend + seasonality (Meta/Facebook) |
 | **ARIMA** | Statistical | 1 cột: giá Close | Mô hình tự hồi quy chuỗi thời gian cổ điển |
 
@@ -57,10 +60,12 @@ CafeF / VnExpress ──→ Crawl Headlines ──→ Sentiment Score ──→ 
 
 ```
 Dữ liệu N ngày
-├── 80% đầu → TRAIN: model học patterns
+├── 80% đầu → TRAIN (trong đó 10% cuối làm VALIDATION)
 └── 20% cuối → TEST: model dự đoán, so sánh với giá thực tế
     → Output: biểu đồ Actual vs Predicted + RMSE / MAE / MAPE
 ```
+
+> **Lưu ý:** Validation set tách từ train (không dùng test set) → tránh data leakage.
 
 ### Dự đoán tương lai (Tab "Dự đoán Tương lai")
 
@@ -87,8 +92,11 @@ Từ 5 cột gốc (OHLCV), tạo thêm **11 technical indicators**:
 | Price Change | Biến động giá tuyệt đối |
 | Price Change % | Biến động giá phần trăm |
 | Volume Change % | Biến động khối lượng |
+| **Sentiment Score** | **Tổng hợp tâm lý thị trường (-1 → +1)** |
+| **Sentiment Momentum** | **Xu hướng giá 5 ngày → tâm lý tích cực/tiêu cực** |
+| **Sentiment Volatility** | **Biến động bất thường → bất ổn thị trường** |
 
-→ Tổng: **16 features** cho mỗi ngày giao dịch, dữ liệu được chuẩn hóa (MinMaxScaler) trước khi đưa vào model.
+→ Tổng: **19 features** cho mỗi ngày giao dịch (khi bật Sentiment). Dữ liệu được chuẩn hóa (MinMaxScaler) trước khi đưa vào model.
 
 ---
 
@@ -109,13 +117,24 @@ Từ 5 cột gốc (OHLCV), tạo thêm **11 technical indicators**:
 
 ## 📰 Sentiment Analysis
 
-Phân tích cảm xúc tin tức tài chính liên quan đến cổ phiếu:
+Sentiment Analysis được **tích hợp trực tiếp vào model** như feature dự đoán:
 
-- **Crawl tin tức** từ CafeF và VnExpress
-- **Phân tích sentiment** bằng từ điển tiếng Việt (score -1 → +1)
-- **Hiển thị**: histogram phân bố, danh sách tin + điểm sentiment
+### Market-based Sentiment (tự động, cho toàn bộ lịch sử)
+Tính từ dữ liệu giá — vận dụng ý tưởng giá phản ánh tâm lý thị trường:
 
-> **Lưu ý:** Sentiment hiện tại là module **demo riêng**, chưa tích hợp vào features của model dự đoán.
+| Signal | Cách tính | Ý nghĩa |
+|--------|-----------|----------|
+| **Momentum** | `tanh(return_5d × 10)` | Giá tăng 5 ngày = tích cực, giảm = tiêu cực |
+| **Volatility** | `rolling_std / median` | Biến động cao = bất ổn = tiêu cực |
+| **Volume Signal** | Volume spike × hướng giá | Khối lượng đột biến = có sự kiện |
+
+### News-based Sentiment (bổ sung, từ crawl)
+- Crawl tin tức từ CafeF và VnExpress
+- Phân tích sentiment bằng từ điển tiếng Việt (score -1 → +1)
+- Blend 50% market + 50% news cho những ngày có tin
+
+> **Cách dùng:** Sidebar → tick ✅ "📰 Tích hợp Sentiment" → chạy bất kỳ model nào.  
+> SHAP sẽ hiển thị sentiment_score trong bảng feature importance.
 
 ---
 
@@ -191,7 +210,7 @@ stock_prediction/
     ├── preprocessing.py         # Tiền xử lý + 11 Technical Indicators
     ├── evaluation.py            # Metrics (RMSE/MAE/MAPE) + biểu đồ Plotly
     ├── explainability.py        # SHAP — Explainable AI cho XGBoost
-    ├── sentiment.py             # Crawl tin tức + Phân tích cảm xúc VN
+    ├── sentiment.py             # Market-based + News-based Sentiment
     └── models/
         ├── __init__.py
         ├── lstm_model.py        # LSTM (2 layers, Dropout, EarlyStopping)
@@ -212,7 +231,7 @@ stock_prediction/
 | Machine Learning | XGBoost, Scikit-learn |
 | Statistical | Prophet (Meta), pmdarima (ARIMA) |
 | Explainable AI | SHAP |
-| NLP | BeautifulSoup (crawl), Từ điển sentiment VN |
+| Sentiment | Market-based (từ giá) + News-based (BeautifulSoup crawl) |
 | Data | yfinance (Yahoo Finance API) |
 | Web App | Streamlit |
 | Visualization | Plotly (interactive charts) |

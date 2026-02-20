@@ -36,7 +36,7 @@ stock-prediction/
     ├── preprocessing.py         # Tiền xử lý + Technical Indicators
     ├── evaluation.py            # Metrics + Biểu đồ
     ├── explainability.py        # SHAP (Explainable AI)
-    ├── sentiment.py             # Phân tích cảm xúc tin tức
+    ├── sentiment.py             # Market-based + News Sentiment
     └── models/
         ├── __init__.py
         ├── lstm_model.py        # LSTM
@@ -124,6 +124,7 @@ Nếu trình duyệt không tự mở, hãy copy link trên và paste vào trìn
 1. **Chọn mã cổ phiếu**: VNM, VCB, FPT, VIC, HPG
 2. **Chọn model**: LSTM, GRU, XGBoost, Prophet, ARIMA
 3. **Tham số**: Lookback (ngày), Tỉ lệ Test (%), Epochs (DL)
+4. **Tích hợp Sentiment**: Tick ✅ để thêm sentiment score làm feature cho model
 
 ### 6 Tabs
 
@@ -133,10 +134,11 @@ Nếu trình duyệt không tự mở, hãy copy link trên và paste vào trìn
 | **⚙️ Đánh giá Model** | Bấm **"Train & Đánh giá"** → chờ train xong → xem kết quả |
 | **🔮 Dự đoán Tương lai** | Chọn số ngày → Bấm **"Dự đoán"** → xem giá tương lai |
 | **🏆 So sánh Models** | Bấm **"So sánh tất cả"** → chờ 5 models chạy xong → xem xếp hạng |
-| **🔍 SHAP - Giải thích AI** | Bấm **"Phân tích SHAP"** → xem tại sao XGBoost dự đoán như vậy |
+| **🔍 SHAP - Giải thích AI** | Bấm **"Phân tích SHAP"** → xem tại sao XGBoost dự đoán như vậy (bao gồm sentiment) |
 | **📰 Sentiment Analysis** | Bấm **"Phân tích"** → crawl tin tức → xem cảm xúc thị trường |
 
-> **Lưu ý:** Tab SHAP chỉ hoạt động với XGBoost. Các model khác chưa hỗ trợ SHAP.
+> **Lưu ý:** Tick "📰 Tích hợp Sentiment" ở sidebar để model dùng thêm 3 sentiment features.  
+> Tab SHAP chỉ hoạt động với XGBoost.
 
 ---
 
