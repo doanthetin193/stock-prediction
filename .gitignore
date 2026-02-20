@@ -31,5 +31,8 @@ desktop.ini
 # Jupyter
 .ipynb_checkpoints/
 
+# Planning docs (internal)
+PROJECT_PLAN.*
+
 # Logs
 *.log

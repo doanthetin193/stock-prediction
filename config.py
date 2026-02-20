@@ -2,6 +2,7 @@
 Cấu hình chung cho project Dự đoán Giá Cổ phiếu Việt Nam.
 """
 import os
+from datetime import date
 
 # === Đường dẫn ===
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -13,7 +14,7 @@ STOCK_SYMBOLS = ["VNM", "VCB", "FPT", "VIC", "HPG"]
 
 # === Khoảng thời gian lấy dữ liệu ===
 DATA_START_DATE = "2021-01-01"
-DATA_END_DATE = "2026-02-10"
+DATA_END_DATE = date.today().strftime("%Y-%m-%d")  # Luôn lấy đến ngày hiện tại
 
 # === Preprocessing ===
 SEQUENCE_LENGTH = 60          # Số ngày lookback cho LSTM/GRU

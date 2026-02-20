@@ -64,32 +64,8 @@ def download_stock_data(symbol: str, start: str = DATA_START_DATE, end: str = DA
     except Exception as e:
         print(f"  ⚠️ [{symbol}] yfinance lỗi: {e}")
 
-    # --- Fallback: vnstock3 ---
     if df is None or df.empty:
-        try:
-            from vnstock3 import Vnstock
-            stock = Vnstock().stock(symbol=symbol, source='VCI')
-            raw = stock.quote.history(start=start, end=end)
-
-            if raw is not None and not raw.empty:
-                raw.columns = [c.lower().strip() for c in raw.columns]
-
-                if 'time' not in raw.columns:
-                    for col in raw.columns:
-                        if 'date' in col or 'time' in col:
-                            raw.rename(columns={col: 'time'}, inplace=True)
-                            break
-
-                if 'time' in raw.columns:
-                    raw['time'] = pd.to_datetime(raw['time'])
-
-                df = raw
-                print(f"  ✅ [{symbol}] Tải thành công từ vnstock3: {len(df)} dòng")
-        except Exception as e:
-            print(f"  ⚠️ [{symbol}] vnstock3 cũng lỗi: {e}")
-
-    if df is None or df.empty:
-        print(f"  ❌ [{symbol}] Không thể tải dữ liệu từ bất kỳ nguồn nào!")
+        print(f"  ❌ [{symbol}] Không thể tải dữ liệu!")
         return pd.DataFrame()
 
     # Chuẩn hóa: giữ lại các cột cần thiết

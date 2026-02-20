@@ -16,7 +16,7 @@ warnings.filterwarnings('ignore')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from config import STOCK_SYMBOLS, SEQUENCE_LENGTH, DATA_DIR
 
-from src.data_loader import load_stock_data, download_stock_data, save_stock_data
+from src.data_loader import load_stock_data as _load_stock_data, download_stock_data, save_stock_data
 from src.preprocessing import (
     add_technical_indicators,
     prepare_data_dl, prepare_data_ml,
@@ -28,6 +28,11 @@ from src.evaluation import (
     plot_predictions, plot_model_comparison,
     plot_candlestick, plot_training_history
 )
+
+
+@st.cache_data(ttl=300)  # Cache 5 phút, tránh load CSV mỗi lần rerun
+def load_stock_data(symbol: str):
+    return _load_stock_data(symbol)
 
 # ============================================================
 # Page Config
@@ -253,7 +258,14 @@ with tab2:
                     status_text.text(f"🏋️ Training {selected_model}...")
                     progress_bar.progress(30)
 
-                    history = model.train(X_train, y_train, X_test, y_test, verbose=0)
+                    # Tách 10% cuối của train làm validation (tránh data leakage)
+                    val_split = int(len(X_train) * 0.9)
+                    X_val = X_train[val_split:]
+                    y_val = y_train[val_split:]
+                    X_train_actual = X_train[:val_split]
+                    y_train_actual = y_train[:val_split]
+
+                    history = model.train(X_train_actual, y_train_actual, X_val, y_val, verbose=0)
 
                     status_text.text("🔮 Dự đoán...")
                     progress_bar.progress(80)
@@ -485,11 +497,18 @@ with tab3:
 
                     # Dự đoán lần lượt
                     last_features = X_all[-1:].copy()
+                    close_idx = feature_names.index('close') if 'close' in feature_names else 3
                     for i in range(future_days):
                         pred = model.predict(last_features)[0]
                         future_predictions.append(pred)
-                        # Cập nhật close trong features cho prediction tiếp theo
-                        last_features[0, 3] = pred  # close column
+                        # Cập nhật close + open/high/low xấp xỉ
+                        last_features[0, close_idx] = pred
+                        if 'open' in feature_names:
+                            last_features[0, feature_names.index('open')] = pred
+                        if 'high' in feature_names:
+                            last_features[0, feature_names.index('high')] = pred * 1.005
+                        if 'low' in feature_names:
+                            last_features[0, feature_names.index('low')] = pred * 0.995
 
                 # ==================== Prophet ====================
                 elif selected_model == "Prophet":
@@ -620,6 +639,12 @@ with tab3:
                     "Thị trường chứng khoán bị ảnh hưởng bởi nhiều yếu tố không thể dự đoán được. "
                     "Không nên dùng kết quả này để đưa ra quyết định đầu tư thực tế."
                 )
+                if future_days > 7:
+                    st.info(
+                        "📉 **Về độ tin cậy:** Dự đoán càng xa (> 7 ngày) thì sai số tích lũy càng lớn, "
+                        "vì mỗi ngày model dùng chính prediction ngày trước làm input (recursive forecasting). "
+                        "Nên tập trung vào 3-5 ngày đầu tiên."
+                    )
 
             except Exception as e:
                 st.error(f"❌ Lỗi: {str(e)}")
@@ -667,7 +692,10 @@ with tab4:
                             from src.models.gru_model import GRUModel
                             model = GRUModel(seq_length, n_features, epochs=epochs)
 
-                        model.train(X_train, y_train, X_test, y_test, verbose=0)
+                        # Tách validation từ train (tránh data leakage)
+                        val_split = int(len(X_train) * 0.9)
+                        model.train(X_train[:val_split], y_train[:val_split],
+                                    X_train[val_split:], y_train[val_split:], verbose=0)
                         y_pred = model.predict(X_test)
 
                         y_true_real = inverse_transform_predictions(y_test, scaler, n_features)

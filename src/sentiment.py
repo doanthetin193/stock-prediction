@@ -10,6 +10,7 @@ import numpy as np
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
+import time
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -68,6 +69,8 @@ def crawl_cafef_news(symbol: str, max_pages: int = 3) -> list:
                     continue
 
             print(f"  📰 CafeF page {page}: {len(items)} bài viết")
+            if page < max_pages:
+                time.sleep(1)  # Tránh bị block
 
         except Exception as e:
             print(f"  ⚠️ Lỗi crawl CafeF page {page}: {e}")
@@ -123,6 +126,8 @@ def crawl_vnexpress_news(symbol: str, max_pages: int = 3) -> list:
                     continue
 
             print(f"  📰 VnExpress page {page}: {len(items)} bài viết")
+            if page < max_pages:
+                time.sleep(1)  # Tránh bị block
 
         except Exception as e:
             print(f"  ⚠️ Lỗi crawl VnExpress page {page}: {e}")
