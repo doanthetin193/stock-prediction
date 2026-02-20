@@ -128,6 +128,8 @@ with st.sidebar:
     seq_length = st.slider("Lookback (ngày)", 20, 120, SEQUENCE_LENGTH)
     test_ratio = st.slider("Tỉ lệ Test (%)", 10, 40, 20) / 100
     epochs = st.slider("Epochs (DL)", 10, 100, 50)
+    use_sentiment = st.checkbox("📰 Tích hợp Sentiment", value=False,
+                                help="Thêm sentiment score tính từ dữ liệu giá + tin tức làm feature cho model")
 
     st.markdown("---")
 
@@ -230,6 +232,11 @@ with tab2:
     else:
         if st.button(f"🚀 Đánh giá {selected_model}", use_container_width=True, type="primary"):
             df_tech = add_technical_indicators(df)
+
+            if use_sentiment:
+                from src.sentiment import merge_sentiment_with_data
+                df_tech = merge_sentiment_with_data(df_tech, selected_symbol)
+                st.caption("📰 Đã tích hợp Sentiment features vào model")
 
             progress_bar = st.progress(0)
             status_text = st.empty()
@@ -432,6 +439,10 @@ with tab3:
         if st.button(f"🔮 Dự đoán {future_days} ngày tới bằng {selected_model}",
                      use_container_width=True, type="primary"):
             df_tech = add_technical_indicators(df)
+
+            if use_sentiment:
+                from src.sentiment import merge_sentiment_with_data
+                df_tech = merge_sentiment_with_data(df_tech, selected_symbol)
 
             progress_bar = st.progress(0)
             status_text = st.empty()
@@ -670,6 +681,11 @@ with tab4:
 
         if st.button("🏁 Chạy so sánh tất cả", use_container_width=True, type="primary"):
             df_tech = add_technical_indicators(df)
+
+            if use_sentiment:
+                from src.sentiment import merge_sentiment_with_data
+                df_tech = merge_sentiment_with_data(df_tech, selected_symbol)
+
             results = {}
 
             progress = st.progress(0)
@@ -806,6 +822,10 @@ with tab5:
     else:
         if st.button("🔬 Phân tích SHAP (XGBoost)", use_container_width=True, type="primary"):
             df_tech = add_technical_indicators(df)
+
+            if use_sentiment:
+                from src.sentiment import merge_sentiment_with_data
+                df_tech = merge_sentiment_with_data(df_tech, selected_symbol)
 
             with st.spinner("Đang train XGBoost & tính SHAP values..."):
                 try:

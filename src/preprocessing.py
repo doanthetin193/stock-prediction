@@ -94,7 +94,9 @@ def prepare_data_dl(df: pd.DataFrame, seq_length: int = SEQUENCE_LENGTH,
     feature_cols = ['close', 'open', 'high', 'low', 'volume']
     # Thêm indicators nếu có
     extra_cols = ['sma_10', 'sma_20', 'ema_12', 'rsi_14', 'macd']
-    for col in extra_cols:
+    # Thêm sentiment nếu có
+    sentiment_cols = ['sentiment_score', 'sentiment_momentum', 'sentiment_volatility']
+    for col in extra_cols + sentiment_cols:
         if col in df.columns:
             feature_cols.append(col)
 
@@ -137,7 +139,9 @@ def prepare_data_ml(df: pd.DataFrame, test_ratio: float = TEST_RATIO):
     extra_cols = ['sma_10', 'sma_20', 'sma_50', 'ema_12', 'ema_26',
                   'rsi_14', 'macd', 'macd_signal', 'price_change',
                   'price_change_pct', 'volume_change_pct']
-    for col in extra_cols:
+    # Thêm sentiment nếu có
+    sentiment_cols = ['sentiment_score', 'sentiment_momentum', 'sentiment_volatility']
+    for col in extra_cols + sentiment_cols:
         if col in df.columns:
             feature_cols.append(col)
 
